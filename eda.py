@@ -11,6 +11,7 @@ def overtime():
 	total_hours = total_hours[['full_name', 'global_id', 'number_of_hours']]
 
 	emp_df = pd.read_csv('data/headcount.csv')
+	emp_df['o_unit'] = emp_df['Organizational Unit']
 	emp_df.columns = [col.lower().replace(' ', '_') for col in emp_df.columns]
 	emp_df['global_id'] = emp_df['gpid']
 
@@ -18,7 +19,7 @@ def overtime():
 
 	return df
 
-def plot_ot(df):
+def bu_ot(df):
 	plt.close()
 
 	fig, ax1 = plt.subplots(1, 1, figsize=(17, 15))
@@ -45,7 +46,35 @@ def plot_ot(df):
 
 	plt.savefig('images/bu_overtime.png')
 
+def org_ot(df):
+	plt.close()
+
+	fig, ax1 = plt.subplots(1, 1, figsize=(17, 15))
+	matplotlib.rcParams.update({'font.size': 18})
+
+	units = []
+	y_dic = {}
+	for unit in sorted(df['o_unit'].unique()):
+		tot_hours = df[df['o_unit'] == unit]['number_of_hours'].sum()
+		if tot_hours > 100:
+			y_dic[unit] = tot_hours
+			units.append(unit)
+
+	ind = np.arange(len(units))
+	width = 0.35
+
+	p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
+	ax1.set_ylabel('Total Overtime Hours')
+	ax1.set_xlabel('Organizational Unit')
+	plt.xticks(ind, y_dic.keys(), rotation='vertical')
+
+	plt.title('Total Overtime Hours by Organizational Unit\nLimited to Units with >100 Hours')
+	plt.tight_layout()
+
+	plt.savefig('images/o_unit_overtime.png')
+
 
 if __name__ == '__main__':
 	df = overtime()
-	plot_ot(df)
+	# bu_ot(df)
+	org_ot(df)
