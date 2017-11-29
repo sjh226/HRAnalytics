@@ -106,6 +106,35 @@ def vac_nonexempt(df):
 
 	plt.savefig('images/bu_vaca_nonexempt_tot.png')
 
+def percent_vaca(df):
+	plt.close()
+
+	fig, ax1 = plt.subplots(1, 1, figsize=(17, 15))
+	matplotlib.rcParams.update({'font.size': 18})
+
+	df['primary_bu'] = df['primary_bu'].str.lstrip('L48 - ')
+	df['perc_remaining'] = df['remainder'] / df['entitlement']
+
+	y_dic = {}
+	for bu in sorted(df['primary_bu'].unique()):
+		avg = df[(df['primary_bu'] == bu) & \
+				 (df['primary_bu'].str.contains('OPERATIONS'))]['perc_remaining'].mean()
+		if avg > 0:
+			y_dic[bu] = avg
+
+	ind = np.arange(len(y_dic.keys()))
+	width = 0.35
+
+	p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
+	ax1.set_ylabel('Average Percent Vacation Remaining')
+	ax1.set_xlabel('BU')
+	plt.xticks(ind, y_dic.keys(), rotation='vertical')
+
+	plt.title('Percent Remaining Vacation by BU')
+	plt.tight_layout()
+
+	plt.savefig('images/bu_vaca_perc.png')
+
 def bu_ot(df):
 	plt.close()
 
@@ -168,5 +197,6 @@ if __name__ == '__main__':
 
 	vaca_df = vacation()
 	# vac_remaining(vaca_df)
-	vac_pos(vaca_df)
+	# vac_pos(vaca_df)
 	# vac_nonexempt(vaca_df)
+	percent_vaca(vaca_df)
