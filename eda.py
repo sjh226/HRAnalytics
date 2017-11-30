@@ -191,7 +191,7 @@ def org_ot(df):
 	west = {}
 	mid = {}
 	y_dic = {}
-	for unit in sorted(df[df['o_unit'].str.contains('Ops')]['o_unit'].unique()):
+	for unit in sorted(df[(df['o_unit'].str.contains('Ops')) & ~(df['o_unit'].str.contains('VP'))]['o_unit'].unique()):
 		avg_hours = df[df['o_unit'] == unit]['number_of_hours'].mean()
 		if avg_hours > 0:
 			if 'north' in unit.lower():
@@ -208,17 +208,22 @@ def org_ot(df):
 			y_dic[unit] = bu[unit]
 
 	ind = np.arange(len(y_dic.keys()))
+	# Attempting to label BUs on graph
+	# bu_labels = ind[[0, len(east) - 1, len(east) + len(mid) - 1, \
+	# 				 len(east) + len(mid) + len(north) - 1, \
+	# 				 len(east) + len(mid) + len(north) + len(west) - 1]]
 	width = 0.35
 
 	p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
 	ax1.set_ylabel('Average Overtime Hours')
 	ax1.set_xlabel('Organizational Unit')
 	plt.xticks(ind, y_dic.keys(), rotation='vertical')
+	# ax1.set_xticks(bu_labels, minor=True)
 
 	plt.title('Average Overtime Hours by Organizational Unit')
 	plt.tight_layout()
 
-	plt.savefig('images/o_unit_overtime_avg.png')
+	plt.savefig('images/o_unit_overtime_avg1.png', dpi=2000)
 
 def bu_ot_50(df):
 	plt.close()
@@ -254,8 +259,6 @@ def ot_nonexempt(df):
 
 	df['primary_bu'] = df['primary_bu'].str.lstrip('L48 - ')
 
-	print(df['primary_bu'].unique())
-
 	y_dic = {}
 	for bu in sorted(df['primary_bu'].astype(str).unique()):
 		avg = df[(df['primary_bu'] == bu) & \
@@ -278,15 +281,15 @@ def ot_nonexempt(df):
 	plt.savefig('images/bu_ot_nonexempt_avg.png')
 
 if __name__ == '__main__':
-	# ot_df = overtime()
+	ot_df = overtime()
 	# bu_ot(ot_df)
-	# org_ot(ot_df)
+	org_ot(ot_df)
 	# bu_ot_50(ot_df)
 	# ot_vac_df = overtime(vaca=True)
 	# ot_nonexempt(ot_df)
 
-	vaca_df = vacation()
+	# vaca_df = vacation()
 	# vac_remaining(vaca_df)
 	# vac_pos(vaca_df)
-	vac_nonexempt(vaca_df)
+	# vac_nonexempt(vaca_df)
 	# percent_vaca(vaca_df)
