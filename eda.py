@@ -215,7 +215,16 @@ def org_ot(df):
 	# 				 len(east) + len(mid) + len(north) + len(west) - 1]]
 	width = 0.35
 
-	p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
+	east_ind = ind[:len(east)]
+	mid_ind = ind[len(east):len(east) + len(mid)]
+	north_ind = ind[len(east) + len(mid): len(east) + len(mid) + len(north)]
+	west_ind = ind[len(east) + len(mid) + len(north):]
+
+	# p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
+	p1 = ax1.bar(east_ind, sorted(east.values()), width, color='#db4b32')
+	p2 = ax1.bar(mid_ind, sorted(mid.values()), width, color='#ad7900')
+	p3 = ax1.bar(north_ind, sorted(north.values()), width, color='#30c16f')
+	p4 = ax1.bar(west_ind, sorted(west.values()), width, color='#0772ba')
 	ax1.set_ylabel('Average Overtime Hours')
 	ax1.set_xlabel('Organizational Unit')
 	plt.xticks(ind, y_dic.keys(), rotation='vertical')
