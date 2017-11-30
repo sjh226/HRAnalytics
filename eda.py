@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 
-def overtime():
+def overtime(vaca=False):
 	ot_df = pd.read_csv('data/overtime.csv')
 	ot_df.columns = [col.lower().replace(' ', '_') for col in ot_df.columns]
 
@@ -23,13 +23,23 @@ def overtime():
 	emp_df.columns = [col.lower().replace(' ', '_') for col in emp_df.columns]
 	emp_df['global_id'] = emp_df['gpid']
 
-	df = pd.merge(emp_df, total_hours, on='global_id', how='outer')
+	overtime_df = pd.merge(emp_df, total_hours, on='global_id', how='outer')
+
+	if vaca == True:
+		vacation_df = vacation()
+		vacation_df['personnel_number'] = vacation_df['employee_id']
+
+		df = pd.merge(overtime_df, vacation_df, on='personnel_number', how='outer')
+	else:
+		df = overtime_df
 
 	return df
 
 def vacation():
 	vaca_df = pd.read_csv('data/vacation.csv')
 	vaca_df.columns = [col.lower().replace(' ', '_') for col in vaca_df.columns]
+
+	vaca_df['perc_remaining'] = vaca_df['remainder'] / vaca_df['entitlement']
 
 	return vaca_df
 
@@ -121,7 +131,6 @@ def percent_vaca(df):
 	matplotlib.rcParams.update({'font.size': 18})
 
 	df['primary_bu'] = df['primary_bu'].str.lstrip('L48 - ')
-	df['perc_remaining'] = df['remainder'] / df['entitlement']
 
 	y_dic = {}
 	for bu in sorted(df['primary_bu'].unique()):
@@ -154,21 +163,21 @@ def bu_ot(df):
 	ops = df[df['bu'].str.contains('Operations')]
 
 	y_dic = {}
-	for bu in ops['bu'].unique():
-		y_dic[bu] = ops[ops['bu'] == bu]['number_of_hours'].sum()
+	for bu in sorted(ops['bu'].unique()):
+		y_dic[bu] = ops[ops['bu'] == bu]['number_of_hours'].mean()
 
 	ind = np.arange(len(ops['bu'].unique()))
 	width = 0.35
 
 	p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
-	ax1.set_ylabel('Total Overtime Hours')
+	ax1.set_ylabel('Average Overtime Hours')
 	ax1.set_xlabel('Business Unit')
 	plt.xticks(ind, y_dic.keys(), rotation='vertical')
 
-	plt.title('Total Overtime Hours by BU')
+	plt.title('Average Overtime Hours by BU')
 	plt.tight_layout()
 
-	plt.savefig('images/bu_overtime.png')
+	plt.savefig('images/bu_overtime_avg.png')
 
 def org_ot(df):
 	plt.close()
@@ -177,25 +186,39 @@ def org_ot(df):
 	matplotlib.rcParams.update({'font.size': 18})
 
 	units = []
+	north = {}
+	east = {}
+	west = {}
+	mid = {}
 	y_dic = {}
-	for unit in sorted(df['o_unit'].unique()):
-		tot_hours = df[df['o_unit'] == unit]['number_of_hours'].sum()
-		if tot_hours > 100:
-			y_dic[unit] = tot_hours
-			units.append(unit)
+	for unit in sorted(df[df['o_unit'].str.contains('Ops')]['o_unit'].unique()):
+		avg_hours = df[df['o_unit'] == unit]['number_of_hours'].mean()
+		if avg_hours > 0:
+			if 'north' in unit.lower():
+				north[unit] = avg_hours
+			elif 'east' in unit.lower():
+				east[unit] =avg_hours
+			elif 'west' in unit.lower():
+				west[unit] = avg_hours
+			elif 'mid' in unit.lower():
+				mid[unit] = avg_hours
 
-	ind = np.arange(len(units))
+	for bu in [east, mid, north, west]:
+		for unit in sorted(bu, key=bu.__getitem__):
+			y_dic[unit] = bu[unit]
+
+	ind = np.arange(len(y_dic.keys()))
 	width = 0.35
 
 	p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
-	ax1.set_ylabel('Total Overtime Hours')
+	ax1.set_ylabel('Average Overtime Hours')
 	ax1.set_xlabel('Organizational Unit')
 	plt.xticks(ind, y_dic.keys(), rotation='vertical')
 
-	plt.title('Total Overtime Hours by Organizational Unit\nLimited to Units with >100 Hours')
+	plt.title('Average Overtime Hours by Organizational Unit')
 	plt.tight_layout()
 
-	plt.savefig('images/o_unit_overtime.png')
+	plt.savefig('images/o_unit_overtime_avg.png')
 
 def bu_ot_50(df):
 	plt.close()
@@ -208,27 +231,59 @@ def bu_ot_50(df):
 
 	y_dic = {}
 	for bu in ops['bu'].unique():
-		y_dic[bu] = ops[ops['bu'] == bu]['over_50'].sum()
+		y_dic[bu] = ops[ops['bu'] == bu]['over_50'].mean()
 
 	ind = np.arange(len(ops['bu'].unique()))
 	width = 0.35
 
 	p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
-	ax1.set_ylabel('Total Overtime Hours Over 50/week')
+	ax1.set_ylabel('Average Overtime Hours Over 50/week')
 	ax1.set_xlabel('Business Unit')
 	plt.xticks(ind, y_dic.keys(), rotation='vertical')
 
-	plt.title('Total Overtime Hours by BU')
+	plt.title('Average Overtime Hours by BU')
 	plt.tight_layout()
 
-	plt.savefig('images/bu_overtime_50.png')
+	plt.savefig('images/bu_overtime_50_avg.png')
 
+def ot_nonexempt(df):
+	plt.close()
+
+	fig, ax1 = plt.subplots(1, 1, figsize=(17, 15))
+	matplotlib.rcParams.update({'font.size': 18})
+
+	df['primary_bu'] = df['primary_bu'].str.lstrip('L48 - ')
+
+	print(df['primary_bu'].unique())
+
+	y_dic = {}
+	for bu in sorted(df['primary_bu'].astype(str).unique()):
+		avg = df[(df['primary_bu'] == bu) & \
+				 (df['employee_subgroup'].str.contains('Non')) & \
+				 (df['primary_bu'].str.contains('OPERATIONS'))]['number_of_hours'].mean()
+		if avg > 0:
+			y_dic[bu] = avg
+
+	ind = np.arange(len(y_dic.keys()))
+	width = 0.35
+
+	p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
+	ax1.set_ylabel('Average Overtime (Hours)')
+	ax1.set_xlabel('BU')
+	plt.xticks(ind, y_dic.keys(), rotation='vertical')
+
+	plt.title('Average Overtime of Non-Exempt Employees by BU')
+	plt.tight_layout()
+
+	plt.savefig('images/bu_ot_nonexempt_avg.png')
 
 if __name__ == '__main__':
 	ot_df = overtime()
-	# bu_ot(ot_df)
+	bu_ot(ot_df)
 	# org_ot(ot_df)
-	bu_ot_50(ot_df)
+	# bu_ot_50(ot_df)
+	# ot_vac_df = overtime(vaca=True)
+	# ot_nonexempt(ot_df)
 
 	# vaca_df = vacation()
 	# vac_remaining(vaca_df)
