@@ -107,7 +107,7 @@ def vac_nonexempt(df):
 	for bu in sorted(df['primary_bu'].unique()):
 		avg = df[(df['primary_bu'] == bu) & \
 				 (df['employee_subgroup'].str.contains('Non')) & \
-				 (df['primary_bu'].str.contains('OPERATIONS'))]['remainder'].sum()
+				 (df['primary_bu'].str.contains('OPERATIONS'))]['remainder'].mean()
 		if avg > 0:
 			y_dic[bu] = avg
 
@@ -115,14 +115,14 @@ def vac_nonexempt(df):
 	width = 0.35
 
 	p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
-	ax1.set_ylabel('Total Remaining Vacation Time (Hours)')
+	ax1.set_ylabel('Average Remaining Vacation Time (Hours)')
 	ax1.set_xlabel('BU')
 	plt.xticks(ind, y_dic.keys(), rotation='vertical')
 
-	plt.title('Total Remaining Vacation Time of Non-Exempt Employees by BU')
+	plt.title('Average Remaining Vacation Time of Non-Exempt Employees by BU')
 	plt.tight_layout()
 
-	plt.savefig('images/bu_vaca_nonexempt_tot.png')
+	plt.savefig('images/bu_vaca_nonexempt_avg.png')
 
 def percent_vaca(df):
 	plt.close()
@@ -230,7 +230,7 @@ def bu_ot_50(df):
 	ops = df[df['bu'].str.contains('Operations')]
 
 	y_dic = {}
-	for bu in ops['bu'].unique():
+	for bu in sorted(ops['bu'].unique()):
 		y_dic[bu] = ops[ops['bu'] == bu]['over_50'].mean()
 
 	ind = np.arange(len(ops['bu'].unique()))
@@ -278,15 +278,15 @@ def ot_nonexempt(df):
 	plt.savefig('images/bu_ot_nonexempt_avg.png')
 
 if __name__ == '__main__':
-	ot_df = overtime()
-	bu_ot(ot_df)
+	# ot_df = overtime()
+	# bu_ot(ot_df)
 	# org_ot(ot_df)
 	# bu_ot_50(ot_df)
 	# ot_vac_df = overtime(vaca=True)
 	# ot_nonexempt(ot_df)
 
-	# vaca_df = vacation()
+	vaca_df = vacation()
 	# vac_remaining(vaca_df)
 	# vac_pos(vaca_df)
-	# vac_nonexempt(vaca_df)
+	vac_nonexempt(vaca_df)
 	# percent_vaca(vaca_df)
