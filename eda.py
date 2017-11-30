@@ -7,8 +7,16 @@ def overtime():
 	ot_df = pd.read_csv('data/overtime.csv')
 	ot_df.columns = [col.lower().replace(' ', '_') for col in ot_df.columns]
 
+	def over_50(hours):
+		if hours > 10:
+			return hours - 10
+		else:
+			return 0
+
+	ot_df['over_50'] = ot_df['number_of_hours'].apply(over_50)
+
 	total_hours = ot_df.groupby(['full_name', 'empl./appl.name', 'global_id'], as_index=False).sum()
-	total_hours = total_hours[['full_name', 'global_id', 'number_of_hours']]
+	total_hours = total_hours[['full_name', 'global_id', 'number_of_hours', 'over_50']]
 
 	emp_df = pd.read_csv('data/headcount.csv')
 	emp_df['o_unit'] = emp_df['Organizational Unit']
@@ -189,14 +197,41 @@ def org_ot(df):
 
 	plt.savefig('images/o_unit_overtime.png')
 
+def bu_ot_50(df):
+	plt.close()
+
+	fig, ax1 = plt.subplots(1, 1, figsize=(17, 15))
+
+	df['bu'] = df['bu'].str.lstrip('L48 - ')
+
+	ops = df[df['bu'].str.contains('Operations')]
+
+	y_dic = {}
+	for bu in ops['bu'].unique():
+		y_dic[bu] = ops[ops['bu'] == bu]['over_50'].sum()
+
+	ind = np.arange(len(ops['bu'].unique()))
+	width = 0.35
+
+	p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
+	ax1.set_ylabel('Total Overtime Hours Over 50/week')
+	ax1.set_xlabel('Business Unit')
+	plt.xticks(ind, y_dic.keys(), rotation='vertical')
+
+	plt.title('Total Overtime Hours by BU')
+	plt.tight_layout()
+
+	plt.savefig('images/bu_overtime_50.png')
+
 
 if __name__ == '__main__':
-	# ot_df = overtime()
-	# bu_ot(df)
+	ot_df = overtime()
+	# bu_ot(ot_df)
 	# org_ot(ot_df)
+	bu_ot_50(ot_df)
 
-	vaca_df = vacation()
+	# vaca_df = vacation()
 	# vac_remaining(vaca_df)
 	# vac_pos(vaca_df)
 	# vac_nonexempt(vaca_df)
-	percent_vaca(vaca_df)
+	# percent_vaca(vaca_df)
