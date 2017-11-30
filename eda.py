@@ -191,7 +191,8 @@ def org_ot(df):
 	west = {}
 	mid = {}
 	y_dic = {}
-	for unit in sorted(df[(df['o_unit'].str.contains('Ops')) & ~(df['o_unit'].str.contains('VP'))]['o_unit'].unique()):
+	for unit in sorted(df[(df['o_unit'].str.contains('Ops')) & \
+					 	  ~(df['o_unit'].str.contains('VP'))]['o_unit'].unique()):
 		avg_hours = df[df['o_unit'] == unit]['number_of_hours'].mean()
 		if avg_hours > 0:
 			if 'north' in unit.lower():
