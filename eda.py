@@ -64,23 +64,32 @@ def west_sup_plot(df):
 	fig, ax1 = plt.subplots(1, 1, figsize=(17, 15))
 	matplotlib.rcParams.update({'font.size': 18})
 
-	temp_dic = {}
+	sum_dic = {}
+	mean_dic = {}
 	y_dic = {}
+	y2_dic = {}
 	for sup in sorted(df['supervisor'].astype(str).unique()):
-		temp_dic[sup] = df[df['supervisor'] == sup]['remuneration__number'].mean()
+		sum_dic[sup] = df[df['supervisor'] == sup]['remuneration__number'].sum()
+		mean_dic[sup] = df[df['supervisor'] == sup]['remuneration__number'].mean()
 
-	for sup in sorted(temp_dic, key=temp_dic.__getitem__):
-		y_dic[sup] = temp_dic[sup]
+	for sup in sorted(sum_dic, key=sum_dic.__getitem__):
+		y_dic[sup] = sum_dic[sup]
+		y2_dic[sup] = mean_dic[sup]
 
 	ind = np.arange(len(y_dic))
 	width = 0.35
 
-	p1 = ax1.bar(ind, y_dic.values(), width, color='#319cd7')
-	ax1.set_ylabel('Average Overtime Hours')
+	p1 = ax1.bar(ind, y_dic.values(), width, color='#25379b')
+	ax1.set_ylabel('Total Overtime Hours')
 	ax1.set_xlabel('Supervisor')
 	plt.xticks(ind, y_dic.keys(), rotation='vertical')
 
-	plt.title('Average Overtime Hours in West by Supervisor')
+	ax2 = ax1.twinx()
+	p2 = ax2.bar(ind + width, y2_dic.values(), width, color='#649b25')
+	ax2.set_ylabel('Average Overtime Hours')
+
+	plt.title('Overtime Hours in West by Supervisor')
+	plt.legend((p1[0], p2[0]), ('Total Hours', 'Average Hours'), loc=2)
 	plt.tight_layout()
 
 	plt.savefig('images/west_overtime.png')
