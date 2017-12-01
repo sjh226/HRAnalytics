@@ -35,6 +35,21 @@ def overtime(vaca=False):
 
 	return df
 
+def west_overtime():
+	ot_df = pd.read_csv('data/west_ot.csv', encoding = 'ISO-8859-1')
+	ot_df.rename(columns={ot_df.columns[3]: 'bu_primary'}, inplace=True)
+	ot_df.columns = [col.lower().replace(' ', '_') for col in ot_df.columns]
+
+	ot_df.groupby(['employee_name', 'personnel_area', 'organizational_unit', \
+				   'bu_primary', 'position', 'absence/remuneration_date', \
+				   'wage_type', 'supervisor'], as_index=False).sum()
+
+	ot_df.dropna(inplace=True)
+
+	ot_df['remuneration__number'] = pd.to_numeric(ot_df['remuneration__number'])
+
+	return ot_df
+
 def vacation():
 	vaca_df = pd.read_csv('data/vacation.csv')
 	vaca_df.columns = [col.lower().replace(' ', '_') for col in vaca_df.columns]
@@ -42,6 +57,33 @@ def vacation():
 	vaca_df['perc_remaining'] = vaca_df['remainder'] / vaca_df['entitlement']
 
 	return vaca_df
+
+def west_sup_plot(df):
+	plt.close()
+
+	fig, ax1 = plt.subplots(1, 1, figsize=(17, 15))
+	matplotlib.rcParams.update({'font.size': 18})
+
+	temp_dic = {}
+	y_dic = {}
+	for sup in sorted(df['supervisor'].astype(str).unique()):
+		temp_dic[sup] = df[df['supervisor'] == sup]['remuneration__number'].mean()
+
+	for sup in sorted(temp_dic, key=temp_dic.__getitem__):
+		y_dic[sup] = temp_dic[sup]
+
+	ind = np.arange(len(y_dic))
+	width = 0.35
+
+	p1 = ax1.bar(ind, y_dic.values(), width, color='#319cd7')
+	ax1.set_ylabel('Average Overtime Hours')
+	ax1.set_xlabel('Supervisor')
+	plt.xticks(ind, y_dic.keys(), rotation='vertical')
+
+	plt.title('Average Overtime Hours in West by Supervisor')
+	plt.tight_layout()
+
+	plt.savefig('images/west_overtime.png')
 
 def approval():
 	vaca_df = pd.read_csv('data/vaca_request.csv')
@@ -68,8 +110,7 @@ def approval():
 
 	df = pd.merge(df, person_df, on='pers_no')
 
-	df['declined_hours'] = df['actual_hours'] - df['req_hours']
-	print(df['declined_hours'].max())
+	df['declined_hours'] = df['req_hours'] - df['actual_hours']
 
 	return df
 
@@ -349,8 +390,6 @@ def ot_nonexempt(df):
 
 	plt.savefig('images/bu_ot_nonexempt_avg.png')
 
-def approval_plot(df):
-	pass
 
 if __name__ == '__main__':
 	# ot_df = overtime()
@@ -366,5 +405,8 @@ if __name__ == '__main__':
 	# vac_nonexempt(vaca_df)
 	# percent_vaca(vaca_df)
 
-	app_df = approval()
-	decline_plot(app_df)
+	# app_df = approval()
+	# decline_plot(app_df)
+
+	w_ot_df = west_overtime()
+	west_sup_plot(w_ot_df)
