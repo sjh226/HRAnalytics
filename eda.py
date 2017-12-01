@@ -182,7 +182,7 @@ def bu_ot(df):
 def org_ot(df):
 	plt.close()
 
-	fig, ax1 = plt.subplots(1, 1, figsize=(17, 15))
+	fig, ax = plt.subplots(1, 1, figsize=(17, 15))
 	matplotlib.rcParams.update({'font.size': 18})
 
 	units = []
@@ -196,13 +196,13 @@ def org_ot(df):
 		avg_hours = df[df['o_unit'] == unit]['number_of_hours'].mean()
 		if avg_hours > 0:
 			if 'north' in unit.lower():
-				north[unit] = avg_hours
+				north[unit.lstrip('North Ops ')] = avg_hours
 			elif 'east' in unit.lower():
-				east[unit] =avg_hours
+				east[unit.lstrip('East Ops ')] =avg_hours
 			elif 'west' in unit.lower():
-				west[unit] = avg_hours
+				west[unit.lstrip('West Ops ')] = avg_hours
 			elif 'mid' in unit.lower():
-				mid[unit] = avg_hours
+				mid[unit.lstrip('Mid Con Ops ')] = avg_hours
 
 	for bu in [east, mid, north, west]:
 		for unit in sorted(bu, key=bu.__getitem__):
@@ -221,19 +221,24 @@ def org_ot(df):
 	west_ind = ind[len(east) + len(mid) + len(north):]
 
 	# p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
-	p1 = ax1.bar(east_ind, sorted(east.values()), width, color='#db4b32')
-	p2 = ax1.bar(mid_ind, sorted(mid.values()), width, color='#ad7900')
-	p3 = ax1.bar(north_ind, sorted(north.values()), width, color='#30c16f')
-	p4 = ax1.bar(west_ind, sorted(west.values()), width, color='#0772ba')
-	ax1.set_ylabel('Average Overtime Hours')
-	ax1.set_xlabel('Organizational Unit')
+	p1 = ax.bar(east_ind, sorted(east.values()), width, color='#db4b32')
+	p2 = ax.bar(mid_ind, sorted(mid.values()), width, color='#ad7900')
+	p3 = ax.bar(north_ind, sorted(north.values()), width, color='#30c16f')
+	p4 = ax.bar(west_ind, sorted(west.values()), width, color='#0772ba')
+	ax.set_ylabel('Average Overtime Hours')
+	ax.set_xlabel('Operations Unit')
+	ax.text(.5, 250, 'East', color='#db4b32', fontsize=24, fontweight='bold')
+	ax.text(7, 175, 'Mid Con', color='#ad7900', fontsize=24, fontweight='bold')
+	ax.text(18, 275, 'North', color='#30c16f', fontsize=24, fontweight='bold')
+	ax.text(35, 200, 'West', color='#0772ba', fontsize=24, fontweight='bold')
 	plt.xticks(ind, y_dic.keys(), rotation='vertical')
 	# ax1.set_xticks(bu_labels, minor=True)
 
-	plt.title('Average Overtime Hours by Organizational Unit')
+	# plt.legend((p1[0], p2[0], p3[0], p4[0]), ('East', 'Mid Con', 'North', 'West'), loc=2)
+	plt.title('Average Overtime Hours by Operations Organizational Unit')
 	plt.tight_layout()
 
-	plt.savefig('images/o_unit_overtime_avg1.png', dpi=2000)
+	plt.savefig('images/o_unit_overtime_avg.png')
 
 def bu_ot_50(df):
 	plt.close()
