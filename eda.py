@@ -43,6 +43,60 @@ def vacation():
 
 	return vaca_df
 
+def approval():
+	vaca_df = pd.read_csv('data/vaca_request.csv')
+	vaca_df.columns = [col.lower().replace(' ', '_') for col in vaca_df.columns]
+	vaca_df = vaca_df[['position', 'pers.no.', 'hrs', 'organizational_unit']]
+
+	total_vaca_df = vaca_df.groupby(['position', 'pers.no.', 'organizational_unit'], as_index=False).sum()
+	total_vaca_df.rename(columns={'hrs': 'req_hours', 'pers.no.': 'pers_no'}, inplace=True)
+
+	pto_df = pd.read_csv('data/pto.csv')
+	pto_df.columns = [col.lower().replace(' ', '_') for col in pto_df.columns]
+	pto_df = pto_df[pto_df['attendance_or_absence_type'].str.lower() == 'vacation']
+	pto_df = pto_df[['pers.no.', 'hrs']]
+
+	total_pto_df = pto_df.groupby(['pers.no.'], as_index=False).sum()
+	total_pto_df.rename(columns={'hrs': 'actual_hours', 'pers.no.': 'pers_no'}, inplace=True)
+
+	df = pd.merge(total_vaca_df, total_pto_df, on='pers_no', how='outer')
+	df = df.groupby(['pers_no', 'position', 'actual_hours'], as_index=False).sum()
+
+	person_df = pd.read_csv('data/personnel.csv', header=None)
+	person_df = person_df[[0, 5, 12]]
+	person_df.columns = ['pers_no', 'office', 'department']
+
+	df = pd.merge(df, person_df, on='pers_no')
+
+	df['declined_hours'] = df['actual_hours'] - df['req_hours']
+	print(df['declined_hours'].max())
+
+	return df
+
+def decline_plot(df):
+	plt.close()
+
+	fig, ax1 = plt.subplots(1, 1, figsize=(17, 15))
+
+	y_dic = {}
+	for dept in sorted(df[df['department'].str.contains('Ops')]['department'].unique()):
+		decl_mean = df[df['department'] == dept]['declined_hours'].mean()
+		if decl_mean > 0:
+			y_dic[dept] = decl_mean
+
+	ind = np.arange(len(y_dic))
+	width = 0.35
+
+	p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
+	ax1.set_ylabel('Total Declined Vacation Time (Hours)')
+	ax1.set_xlabel('Department')
+	plt.xticks(ind, y_dic.keys(), rotation='vertical')
+
+	plt.title('Declined Vacation Time by BU')
+	plt.tight_layout()
+
+	plt.savefig('images/bu_decl_vaca.png')
+
 def vac_remaining(df):
 	plt.close()
 
@@ -295,10 +349,13 @@ def ot_nonexempt(df):
 
 	plt.savefig('images/bu_ot_nonexempt_avg.png')
 
+def approval_plot(df):
+	pass
+
 if __name__ == '__main__':
-	ot_df = overtime()
+	# ot_df = overtime()
 	# bu_ot(ot_df)
-	org_ot(ot_df)
+	# org_ot(ot_df)
 	# bu_ot_50(ot_df)
 	# ot_vac_df = overtime(vaca=True)
 	# ot_nonexempt(ot_df)
@@ -308,3 +365,6 @@ if __name__ == '__main__':
 	# vac_pos(vaca_df)
 	# vac_nonexempt(vaca_df)
 	# percent_vaca(vaca_df)
+
+	app_df = approval()
+	decline_plot(app_df)
