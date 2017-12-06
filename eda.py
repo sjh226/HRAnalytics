@@ -29,9 +29,33 @@ def overtime(vaca=False):
 		vacation_df = vacation()
 		vacation_df['personnel_number'] = vacation_df['employee_id']
 
-		df = pd.merge(overtime_df, vacation_df, on='personnel_number', how='outer')
+		vo_df = pd.merge(overtime_df, vacation_df, on='personnel_number', how='outer')
 	else:
-		df = overtime_df
+		vo_df = overtime_df
+
+	vo_df['emp_name'] = vo_df['first_name'].str.lower() + ' ' + vo_df['last_name'].str.lower()
+
+	sup_df = pd.read_csv('data/supervisors.csv')
+	sup_df.columns = [col.lower().replace(' ', '_') for col in sup_df.columns]
+
+	sup_df['emp_name'] = sup_df['employee_name'].str.lower()
+	sup_df['emp_name'] = sup_df['emp_name'].str.lstrip(' ')
+	sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('miss')
+	sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('ms')
+	sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('mr')
+	sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('mrs')
+
+	sup_df['super'] = sup_df['manager/approver_name'].str.lower()
+	sup_df['super'] = sup_df['super'].str.lstrip(' ')
+	sup_df['super'] = sup_df['super'].str.lstrip('miss')
+	sup_df['super'] = sup_df['super'].str.lstrip('ms')
+	sup_df['super'] = sup_df['super'].str.lstrip('mr')
+	sup_df['super'] = sup_df['super'].str.lstrip('mrs')
+
+	sup_df = sup_df[['emp_name', 'super']].drop_duplicates()
+
+	df = pd.merge(vo_df, sup_df, on='emp_name', how='outer')
+	# df.drop_duplicates(inplace=True)
 
 	return df
 
@@ -344,6 +368,34 @@ def org_ot(df):
 
 	plt.savefig('images/o_unit_overtime_avg.png')
 
+def sup_ot(df):
+	plt.close()
+
+	fig, ax = plt.subplots(1, 1, figsize=(17, 15))
+	matplotlib.rcParams.update({'font.size': 18})
+
+	y_dic = {}
+	for supervisor in df['super'].unique():
+		avg_hours = df[df['super'] == supervisor]['number_of_hours'].mean()
+		if avg_hours > 0:
+			y_dic[supervisor] = avg_hours
+
+	ind = np.arange(len(y_dic.keys()))
+	width = 0.35
+
+	# p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
+	p1 = ax.bar(ind, y_dic.values(), width, color='#db4b32')
+	ax.set_ylabel('Average Overtime Hours')
+	ax.set_xlabel('Supervisor')
+	plt.xticks(ind, y_dic.keys(), rotation='vertical')
+	# ax1.set_xticks(bu_labels, minor=True)
+
+	# plt.legend((p1[0], p2[0], p3[0], p4[0]), ('East', 'Mid Con', 'North', 'West'), loc=2)
+	plt.title('Average Overtime Hours by Supervisor')
+	plt.tight_layout()
+
+	plt.savefig('images/sup_overtime_avg.png')
+
 def bu_ot_50(df):
 	plt.close()
 
@@ -401,12 +453,13 @@ def ot_nonexempt(df):
 
 
 if __name__ == '__main__':
-	# ot_df = overtime()
+	ot_df = overtime()
 	# bu_ot(ot_df)
 	# org_ot(ot_df)
 	# bu_ot_50(ot_df)
 	# ot_vac_df = overtime(vaca=True)
 	# ot_nonexempt(ot_df)
+	sup_ot(ot_df)
 
 	# vaca_df = vacation()
 	# vac_remaining(vaca_df)
@@ -417,5 +470,5 @@ if __name__ == '__main__':
 	# app_df = approval()
 	# decline_plot(app_df)
 
-	w_ot_df = west_overtime()
-	west_sup_plot(w_ot_df)
+	# w_ot_df = west_overtime()
+	# west_sup_plot(w_ot_df)
