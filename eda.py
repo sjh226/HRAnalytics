@@ -59,6 +59,65 @@ def overtime(vaca=False):
 
 	return df
 
+def rej_vaca():
+	df = pd.read_csv('data/vaca_rej.csv')
+	df.columns = [col.lower().replace(' ', '_') for col in df.columns]
+	df.rename(columns={'manager/approver_name': 'supervisor'}, inplace=True)
+	df = df[df['leave_request_date'].str.contains('2016')]
+
+	df.loc[:, 'supervisor'] = df['supervisor'].str.lower()
+	df.loc[:, 'supervisor'] = df['supervisor'].str.lstrip()
+	df.loc[:, 'supervisor'] = df['supervisor'].str.lstrip('miss')
+	df.loc[:, 'supervisor'] = df['supervisor'].str.lstrip('ms')
+	df.loc[:, 'supervisor'] = df['supervisor'].str.lstrip('mr')
+	df.loc[:, 'supervisor'] = df['supervisor'].str.lstrip('mrs')
+	df.loc[:, 'supervisor'] = df['supervisor'].str.title()
+
+	sup_df = df[['supervisor', 'absence_hours', 'status']]
+
+	sup_df = sup_df.groupby(['supervisor', 'status'], as_index=False).sum()
+
+	return sup_df, df
+
+def reject_plot(df, full_df, plot_type='total'):
+	plt.close()
+
+	fig, ax1 = plt.subplots(1, 1, figsize=(17, 15))
+
+	sup_dic = {}
+	total_emp_dic = {}
+	for sup in df[df['status'].str.lower() == 'rejected']['supervisor'].unique():
+		sup_dic[sup] = df[(df['status'].str.lower() == 'rejected') & \
+						(df['supervisor'] == sup)]['absence_hours'].unique()[0]
+
+	for sup in df[df['status'].str.lower() == 'rejected']['supervisor'].unique():
+		total_emp_dic[sup] = df[(df['status'].str.lower() == 'rejected') & \
+						(df['supervisor'] == sup)]['absence_hours'].unique()[0] /\
+						full_df[full_df['supervisor'] == sup]['employee_name'].shape[0]
+
+	y_dic = {}
+	if plot_type == 'total':
+		for sup in sorted(sup_dic, key=sup_dic.__getitem__):
+			y_dic[sup] = sup_dic[sup]
+	elif plot_type == 'average':
+		for sup in sorted(total_emp_dic, key=total_emp_dic.__getitem__):
+			y_dic[sup] = total_emp_dic[sup]
+
+	ind = np.arange(len(y_dic))
+	width = 0.35
+
+	ax1.bar(ind, y_dic.values(), width, color='#db4b32')
+	ax1.set_ylabel('{} Declined Vacation Time (Hours)'.format(plot_type.title()))
+	ax1.set_xlabel('Supervisor')
+	plt.xticks(ind, y_dic.keys(), rotation='vertical')
+
+	plt.title('Declined Vacation Time by Supervisor')
+	plt.tight_layout()
+	if plot_type == 'total':
+		plt.savefig('images/sup_decl_vaca.png')
+	elif plot_type == 'average':
+		plt.savefig('images/sup_decl_vaca_avg.png')
+
 def west_overtime():
 	ot_df = pd.read_csv('data/west_ot.csv', encoding = 'ISO-8859-1')
 	ot_df.rename(columns={ot_df.columns[3]: 'bu_primary'}, inplace=True)
@@ -453,13 +512,13 @@ def ot_nonexempt(df):
 
 
 if __name__ == '__main__':
-	ot_df = overtime()
+	# ot_df = overtime()
 	# bu_ot(ot_df)
 	# org_ot(ot_df)
 	# bu_ot_50(ot_df)
 	# ot_vac_df = overtime(vaca=True)
 	# ot_nonexempt(ot_df)
-	sup_ot(ot_df)
+	# sup_ot(ot_df)
 
 	# vaca_df = vacation()
 	# vac_remaining(vaca_df)
@@ -472,3 +531,6 @@ if __name__ == '__main__':
 
 	# w_ot_df = west_overtime()
 	# west_sup_plot(w_ot_df)
+
+	vaca_df, full_df = rej_vaca()
+	reject_plot(vaca_df, full_df, plot_type='average')
