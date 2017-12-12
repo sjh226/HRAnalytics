@@ -35,27 +35,39 @@ def overtime(vaca=False):
 
 	vo_df['emp_name'] = vo_df['first_name'].str.lower() + ' ' + vo_df['last_name'].str.lower()
 
-	sup_df = pd.read_csv('data/supervisors.csv')
+	# sup_df = pd.read_csv('data/vaca_rej.csv')
+	# sup_df.columns = [col.lower().replace(' ', '_') for col in sup_df.columns]
+	# sup_df.rename(columns={'manager/approver_name': 'supervisor'}, inplace=True)
+    #
+	# sup_df['emp_name'] = sup_df['employee_name'].str.lower()
+	# sup_df['emp_name'] = sup_df['emp_name'].str.lstrip(' ')
+	# sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('miss')
+	# sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('ms')
+	# sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('mr')
+	# sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('mrs')
+    #
+	# sup_df['super'] = sup_df['manager/approver_name'].str.lower()
+	# sup_df['super'] = sup_df['super'].str.lstrip(' ')
+	# sup_df['super'] = sup_df['super'].str.lstrip('miss')
+	# sup_df['super'] = sup_df['super'].str.lstrip('ms')
+	# sup_df['super'] = sup_df['super'].str.lstrip('mr')
+	# sup_df['super'] = sup_df['super'].str.lstrip('mrs')
+
+	sup_df = pd.read_csv('data/super_map.csv')
 	sup_df.columns = [col.lower().replace(' ', '_') for col in sup_df.columns]
+	sup_df.rename(columns={'employee_name': 'emp_name'}, inplace=True)
 
-	sup_df['emp_name'] = sup_df['employee_name'].str.lower()
-	sup_df['emp_name'] = sup_df['emp_name'].str.lstrip(' ')
-	sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('miss')
-	sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('ms')
-	sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('mr')
-	sup_df['emp_name'] = sup_df['emp_name'].str.lstrip('mrs')
+	def name_format(val):
+		return ' '.join(val.split(',')[::-1]).lower().strip()
 
-	sup_df['super'] = sup_df['manager/approver_name'].str.lower()
-	sup_df['super'] = sup_df['super'].str.lstrip(' ')
-	sup_df['super'] = sup_df['super'].str.lstrip('miss')
-	sup_df['super'] = sup_df['super'].str.lstrip('ms')
-	sup_df['super'] = sup_df['super'].str.lstrip('mr')
-	sup_df['super'] = sup_df['super'].str.lstrip('mrs')
+	for col in ['emp_name', 'supervisor']:
+		sup_df.loc[:, col] = sup_df[col].apply(name_format)
 
-	sup_df = sup_df[['emp_name', 'super']].drop_duplicates()
+	sup_df = sup_df[['emp_name', 'supervisor']].drop_duplicates()
+	sup_df.loc[:, 'supervisor'] = sup_df['supervisor'].str.title()
 
 	df = pd.merge(vo_df, sup_df, on='emp_name', how='outer')
-	# df.drop_duplicates(inplace=True)
+	df['number_of_hours'].fillna(0, inplace=True)
 
 	return df
 
@@ -433,23 +445,53 @@ def sup_ot(df):
 	fig, ax = plt.subplots(1, 1, figsize=(17, 15))
 	matplotlib.rcParams.update({'font.size': 18})
 
-	y_dic = {}
-	for supervisor in df['super'].unique():
-		avg_hours = df[df['super'] == supervisor]['number_of_hours'].mean()
+	sup_dic = {}
+	north = {}
+	east = {}
+	west = {}
+	mid = {}
+	for supervisor in df['supervisor'].unique():
+		avg_hours = df[df['supervisor'] == supervisor]['number_of_hours'].mean()
 		if avg_hours > 0:
-			y_dic[supervisor] = avg_hours
+			sup_dic[supervisor] = avg_hours
+			if 'north' in df[df['supervisor'] == supervisor]['bu'].unique()[0].lower():
+				north[supervisor] = avg_hours
+			elif 'east' in df[df['supervisor'] == supervisor]['bu'].unique()[0].lower():
+				east[supervisor] = avg_hours
+			elif 'west' in df[df['supervisor'] == supervisor]['bu'].unique()[0].lower():
+				west[supervisor] = avg_hours
+			elif 'mid' in df[df['supervisor'] == supervisor]['bu'].unique()[0].lower():
+				mid[supervisor] = avg_hours
+
+	y_dic = {}
+	for bu in [east, mid, north, west]:
+		for sup in sorted(bu, key=bu.__getitem__):
+			y_dic[sup] = bu[sup]
 
 	ind = np.arange(len(y_dic.keys()))
 	width = 0.35
 
-	# p1 = ax1.bar(ind, y_dic.values(), width, color='#db4b32')
-	p1 = ax.bar(ind, y_dic.values(), width, color='#db4b32')
+	east_ind = ind[:len(east)]
+	mid_ind = ind[len(east):len(east) + len(mid)]
+	north_ind = ind[len(east) + len(mid): len(east) + len(mid) + len(north)]
+	west_ind = ind[len(east) + len(mid) + len(north):]
+
+	p1 = ax.bar(east_ind, sorted(east.values()), width, color='#db4b32')
+	p2 = ax.bar(mid_ind, sorted(mid.values()), width, color='#ad7900')
+	p3 = ax.bar(north_ind, sorted(north.values()), width, color='#30c16f')
+	p4 = ax.bar(west_ind, sorted(west.values()), width, color='#0772ba')
 	ax.set_ylabel('Average Overtime Hours')
 	ax.set_xlabel('Supervisor')
-	plt.xticks(ind, y_dic.keys(), rotation='vertical')
-	# ax1.set_xticks(bu_labels, minor=True)
+	ax.text(.5, 210, 'East', color='#db4b32', fontsize=24, fontweight='bold')
+	ax.text(7, 190, 'Mid Con', color='#ad7900', fontsize=24, fontweight='bold')
+	ax.text(18, 280, 'North', color='#30c16f', fontsize=24, fontweight='bold')
+	ax.text(32, 150, 'West', color='#0772ba', fontsize=24, fontweight='bold')
 
-	# plt.legend((p1[0], p2[0], p3[0], p4[0]), ('East', 'Mid Con', 'North', 'West'), loc=2)
+	# p1 = ax.bar(ind, y_dic.values(), width, color='#db4b32')
+	# ax.set_ylabel('Average Overtime Hours')
+	# ax.set_xlabel('Supervisor')
+	plt.xticks(ind, y_dic.keys(), rotation='vertical')
+
 	plt.title('Average Overtime Hours by Supervisor')
 	plt.tight_layout()
 
@@ -512,13 +554,13 @@ def ot_nonexempt(df):
 
 
 if __name__ == '__main__':
-	# ot_df = overtime()
+	ot_df = overtime()
 	# bu_ot(ot_df)
 	# org_ot(ot_df)
 	# bu_ot_50(ot_df)
 	# ot_vac_df = overtime(vaca=True)
 	# ot_nonexempt(ot_df)
-	# sup_ot(ot_df)
+	sup_ot(ot_df)
 
 	# vaca_df = vacation()
 	# vac_remaining(vaca_df)
@@ -532,5 +574,5 @@ if __name__ == '__main__':
 	# w_ot_df = west_overtime()
 	# west_sup_plot(w_ot_df)
 
-	vaca_df, full_df = rej_vaca()
-	reject_plot(vaca_df, full_df, plot_type='total')
+	# vaca_df, full_df = rej_vaca()
+	# reject_plot(vaca_df, full_df, plot_type='total')
