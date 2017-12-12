@@ -63,7 +63,7 @@ def rej_vaca():
 	df = pd.read_csv('data/vaca_rej.csv')
 	df.columns = [col.lower().replace(' ', '_') for col in df.columns]
 	df.rename(columns={'manager/approver_name': 'supervisor'}, inplace=True)
-	df = df[df['leave_request_date'].str.contains('2016')]
+	df = df[(df['leave_request_date'].str.contains('2016')) & (df['note'].isnull())]
 
 	df.loc[:, 'supervisor'] = df['supervisor'].str.lower()
 	df.loc[:, 'supervisor'] = df['supervisor'].str.lstrip()
@@ -533,4 +533,4 @@ if __name__ == '__main__':
 	# west_sup_plot(w_ot_df)
 
 	vaca_df, full_df = rej_vaca()
-	reject_plot(vaca_df, full_df, plot_type='average')
+	reject_plot(vaca_df, full_df, plot_type='total')
