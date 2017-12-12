@@ -445,12 +445,15 @@ def sup_ot(df):
 	fig, ax = plt.subplots(1, 1, figsize=(17, 15))
 	matplotlib.rcParams.update({'font.size': 18})
 
+	df.dropna(subset=['o_unit'], inplace=True)
+
 	sup_dic = {}
 	north = {}
 	east = {}
 	west = {}
 	mid = {}
-	for supervisor in df['supervisor'].unique():
+	for supervisor in df[(df['o_unit'].str.contains('Ops')) & \
+					 	 ~(df['o_unit'].str.contains('VP'))]['supervisor'].unique():
 		avg_hours = df[df['supervisor'] == supervisor]['number_of_hours'].mean()
 		if avg_hours > 0:
 			sup_dic[supervisor] = avg_hours
