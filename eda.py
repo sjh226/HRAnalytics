@@ -67,7 +67,7 @@ def overtime(vaca=False):
 	sup_df.loc[:, 'supervisor'] = sup_df['supervisor'].str.title()
 
 	df = pd.merge(vo_df, sup_df, on='emp_name', how='outer')
-	df['number_of_hours'].fillna(0, inplace=True)
+	df['number_of_hours'] = df['number_of_hours'].fillna(0)
 
 	return df
 
@@ -89,6 +89,14 @@ def rej_vaca():
 
 	sup_df = sup_df.groupby(['supervisor', 'status'], as_index=False).sum()
 
+	org_df = pd.read_csv('data/headcount.csv')
+	org_df.drop(['Organizational unit'], axis=1, inplace=True)
+	org_df.columns = [col.lower().replace(' ', '_') for col in org_df.columns]
+	org_df.loc[:, 'supervisor'] = org_df['first_name'] + ' ' + org_df['last_name']
+	org_df = org_df[['supervisor', 'organizational_unit']]
+
+	sup_df = pd.merge(sup_df, org_df, on='supervisor', how='outer')
+
 	return sup_df, df
 
 def reject_plot(df, full_df, plot_type='total'):
@@ -98,7 +106,8 @@ def reject_plot(df, full_df, plot_type='total'):
 
 	sup_dic = {}
 	total_emp_dic = {}
-	for sup in df[df['status'].str.lower() == 'rejected']['supervisor'].unique():
+	for sup in df[(df['status'].str.lower() == 'rejected') & \
+				  (df['organizational_unit'].str.contains('Ops'))]['supervisor'].unique():
 		sup_dic[sup] = df[(df['status'].str.lower() == 'rejected') & \
 						(df['supervisor'] == sup)]['absence_hours'].unique()[0]
 
@@ -485,10 +494,10 @@ def sup_ot(df):
 	p4 = ax.bar(west_ind, sorted(west.values()), width, color='#0772ba')
 	ax.set_ylabel('Average Overtime Hours')
 	ax.set_xlabel('Supervisor')
-	ax.text(.5, 210, 'East', color='#db4b32', fontsize=24, fontweight='bold')
-	ax.text(7, 190, 'Mid Con', color='#ad7900', fontsize=24, fontweight='bold')
-	ax.text(18, 280, 'North', color='#30c16f', fontsize=24, fontweight='bold')
-	ax.text(32, 150, 'West', color='#0772ba', fontsize=24, fontweight='bold')
+	ax.text(.5, 125, 'East', color='#db4b32', fontsize=24, fontweight='bold')
+	ax.text(7, 165, 'Mid Con', color='#ad7900', fontsize=24, fontweight='bold')
+	ax.text(18, 205, 'North', color='#30c16f', fontsize=24, fontweight='bold')
+	ax.text(33, 130, 'West', color='#0772ba', fontsize=24, fontweight='bold')
 
 	# p1 = ax.bar(ind, y_dic.values(), width, color='#db4b32')
 	# ax.set_ylabel('Average Overtime Hours')
@@ -557,13 +566,13 @@ def ot_nonexempt(df):
 
 
 if __name__ == '__main__':
-	ot_df = overtime()
+	# ot_df = overtime()
 	# bu_ot(ot_df)
 	# org_ot(ot_df)
 	# bu_ot_50(ot_df)
 	# ot_vac_df = overtime(vaca=True)
 	# ot_nonexempt(ot_df)
-	sup_ot(ot_df)
+	# sup_ot(ot_df)
 
 	# vaca_df = vacation()
 	# vac_remaining(vaca_df)
@@ -577,5 +586,5 @@ if __name__ == '__main__':
 	# w_ot_df = west_overtime()
 	# west_sup_plot(w_ot_df)
 
-	# vaca_df, full_df = rej_vaca()
-	# reject_plot(vaca_df, full_df, plot_type='total')
+	vaca_df, full_df = rej_vaca()
+	reject_plot(vaca_df, full_df, plot_type='average')
